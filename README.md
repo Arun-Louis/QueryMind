@@ -1,272 +1,154 @@
-\# QueryMind — Hybrid NL2SQL + RAG Business Intelligence System
+# QueryMind — Hybrid NL2SQL + RAG Business Intelligence System
 
+> Ask questions about your data in plain English. No SQL required.
 
+---
 
-A natural language BI tool that lets non-technical users query a PostgreSQL database and retrieve document context using plain English. No SQL knowledge required.
+## Overview
 
+QueryMind is an AI-powered business intelligence system that combines two retrieval strategies:
 
+- **Text-to-SQL** — converts natural language questions into SQL queries and runs them against a PostgreSQL database
+- **RAG (Retrieval-Augmented Generation)** — searches business documents using semantic similarity via pgvector
+- **Hybrid routing** — an LLM-based router classifies each question as SQL, RAG, or both, then merges the results into a single answer
 
-\## What it does
+Built on the [Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (500k+ rows, 8 relational tables).
 
+---
 
+## Tech Stack
 
-Type a question like \*"Why did sales drop in Q3 2017?"\* and QueryMind:
+- **LLM** — LLaMA 3.1 8B via Groq API
+- **Orchestration** — LangChain, LangGraph
+- **Database** — PostgreSQL 14
+- **Vector store** — pgvector
+- **Embeddings** — sentence-transformers (all-MiniLM-L6-v2)
+- **UI** — Streamlit + Plotly
+- **Language** — Python 3.14
 
-1\. Classifies it as SQL, RAG, or Hybrid
+---
 
-2\. Queries your PostgreSQL database for numbers
-
-3\. Searches business report PDFs for context
-
-4\. Merges both into one coherent answer
-
-
-
-\## Architecture
-
-
-
-| Layer | Technology |
-
-|---|---|
-
-| LLM | LLaMA 3.1 8B via Groq API |
-
-| SQL generation | LangChain SQLDatabaseChain |
-
-| Vector search | pgvector (PostgreSQL extension) |
-
-| Embeddings | sentence-transformers (all-MiniLM-L6-v2) |
-
-| Orchestration | LangChain + LangGraph |
-
-| Dataset | Olist Brazilian E-Commerce (500k+ rows, 8 tables) |
-
-| UI | Streamlit + Plotly |
-
-
-
-\## Project Structure
-
-
+## How It Works
 
 ```
+User question
+    └── LLM Router (SQL / RAG / HYBRID)
+            ├── SQL path: LangChain generates SQL → runs against PostgreSQL
+            ├── RAG path: embeds question → pgvector similarity search → retrieves chunks
+            └── Synthesizer: merges both results → final natural language answer
+```
 
+---
+
+## Project Structure
+
+```
 querymind/
-
 ├── db/
-
-│   ├── connect.py          # PostgreSQL + pgvector connections
-
-│   └── load\_data.py        # Load Olist CSVs into PostgreSQL
-
+│   ├── connect.py              # DB connection helpers
+│   └── load_data.py            # Load Olist CSVs into PostgreSQL
 ├── llm/
-
-│   ├── text\_to\_sql.py      # Phase 2 — raw LLM SQL generation
-
-│   ├── langchain\_sql.py    # Phase 3 — LangChain SQL chain
-
-│   └── hybrid\_pipeline.py  # Phase 5 — full hybrid router
-
+│   ├── text_to_sql.py          # Phase 2 — raw LLM SQL pipeline
+│   ├── langchain_sql.py        # Phase 3 — LangChain SQL chain
+│   └── hybrid_pipeline.py      # Phase 5 — hybrid router
 ├── rag/
-
-│   ├── create\_reports.py   # Generate synthetic PDF reports
-
-│   ├── embed\_documents.py  # Chunk, embed, store in pgvector
-
-│   └── retrieve.py         # Semantic similarity retrieval
-
+│   ├── create_reports.py       # Generate synthetic business PDFs
+│   ├── embed_documents.py      # Chunk, embed, store in pgvector
+│   └── retrieve.py             # Semantic retrieval
 ├── data/
-
-│   └── reports/            # Synthetic business PDFs
-
-├── app.py                  # Streamlit UI (Phase 6)
-
-├── .env.example            # Environment variable template
-
+│   └── reports/                # Business report PDFs
+├── app.py                      # Streamlit UI
+├── .env.example
 ├── requirements.txt
-
 └── README.md
-
 ```
 
+---
 
+## Setup
 
-\## Setup
+### Prerequisites
+- Python 3.10+
+- PostgreSQL 14+
+- Docker Desktop
 
-
-
-\### Prerequisites
-
-\- Python 3.10+
-
-\- PostgreSQL 14+
-
-\- Docker Desktop
-
-
-
-\### 1. Clone the repo
-
+### 1. Clone
 ```bash
-
-git clone https://github.com/Arun-Louis/querymind.git
-
-cd querymind
-
+git clone https://github.com/Arun-Louis/QueryMind.git
+cd QueryMind
 ```
 
-
-
-\### 2. Create virtual environment
-
+### 2. Virtual environment
 ```bash
-
 python -m venv venv
-
-venv\\Scripts\\activate        # Windows
-
-source venv/bin/activate     # Mac/Linux
-
-```
-
-
-
-\### 3. Install dependencies
-
-```bash
-
+venv\Scripts\activate       # Windows
+source venv/bin/activate    # Mac/Linux
 pip install -r requirements.txt
-
 ```
 
+### 3. Environment variables
+Create a `.env` file based on `.env.example`:
+```
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=nl2sql_db
+DB_USER=postgres
+DB_PASSWORD=your_password
 
+VECTOR_DB_HOST=localhost
+VECTOR_DB_PORT=5433
+VECTOR_DB_NAME=nl2sql_db
+VECTOR_DB_USER=postgres
+VECTOR_DB_PASSWORD=your_password
 
-\### 4. Set up environment variables
-
-Copy `.env.example` to `.env` and fill in your values:
-
+GROQ_API_KEY=your_groq_api_key
 ```
 
-DB\_HOST=localhost
-
-DB\_PORT=5432
-
-DB\_NAME=nl2sql\_db
-
-DB\_USER=postgres
-
-DB\_PASSWORD=your\_password
-
-
-
-VECTOR\_DB\_HOST=localhost
-
-VECTOR\_DB\_PORT=5433
-
-VECTOR\_DB\_NAME=nl2sql\_db
-
-VECTOR\_DB\_USER=postgres
-
-VECTOR\_DB\_PASSWORD=your\_password
-
-
-
-GROQ\_API\_KEY=your\_groq\_api\_key
-
-```
-
-
-
-\### 5. Download the dataset
-
-Download the Olist Brazilian E-Commerce dataset from Kaggle:
-
-https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
-
-Place the CSV files in data/
-
-
-
-\### 6. Start pgvector with Docker
-
+### 4. Start pgvector (Docker)
 ```bash
-
-docker run -d --name pgvector\_db \\
-
-&#x20; -e POSTGRES\_PASSWORD=postgres \\
-
-&#x20; -e POSTGRES\_DB=nl2sql\_db \\
-
-&#x20; -p 5433:5432 \\
-
-&#x20; pgvector/pgvector:pg14
-
+docker run -d --name pgvector_db \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=nl2sql_db \
+  -p 5433:5432 \
+  pgvector/pgvector:pg14
 ```
 
-
-
-\### 7. Load data and build RAG index
-
+### 5. Load data
+Download the Olist dataset from Kaggle and place CSVs in `data/`, then:
 ```bash
-
-python db/load\_data.py
-
-python -m rag.create\_reports
-
-python -m rag.embed\_documents
-
+python db/load_data.py
+python -m rag.create_reports
+python -m rag.embed_documents
 ```
 
-
-
-\### 8. Run
-
+### 6. Run
 ```bash
+# Test pipeline
+python -m llm.hybrid_pipeline
 
-\# Test the pipeline
-
-python -m llm.hybrid\_pipeline
-
-
-
-\# Launch UI
-
+# Launch UI
 streamlit run app.py
-
 ```
 
+---
 
+## Status
 
-\## How the router works
+- [x] Phase 1 — Environment + data setup
+- [x] Phase 2 — Raw LLM SQL generation
+- [x] Phase 3 — LangChain SQL chain + conversation memory
+- [x] Phase 4 — RAG layer with pgvector
+- [x] Phase 5 — Hybrid router pipeline
+- [ ] Phase 6 — Streamlit UI
 
+---
 
+## Dataset
 
-Every question is classified by the LLM into one of three paths:
+[Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) — 100k orders, 8 relational tables covering orders, customers, products, sellers, payments, and reviews.
 
+---
 
+## Author
 
-\- \*\*SQL\*\* — needs numbers, counts, rankings from the database
-
-\- \*\*RAG\*\* — needs qualitative context or explanations from documents
-
-\- \*\*HYBRID\*\* — needs both; results are merged into one answer
-
-
-
-\## Status
-
-
-
-\- \[x] Phase 1 — Environment + data setup
-
-\- \[x] Phase 2 — Raw LLM SQL generation
-
-\- \[x] Phase 3 — LangChain SQL chain + conversation memory
-
-\- \[x] Phase 4 — RAG layer with pgvector
-
-\- \[x] Phase 5 — Hybrid pipeline with router
-
-\- \[ ] Phase 6 — Streamlit UI
-
+Arun Louis — [linkedin.com/in/arunlouis17](https://linkedin.com/in/arunlouis17)
