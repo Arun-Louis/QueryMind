@@ -132,16 +132,6 @@ streamlit run app.py
 
 ---
 
-## Status
-
-- [x] Phase 1 — Environment + data setup
-- [x] Phase 2 — Raw LLM SQL generation
-- [x] Phase 3 — LangChain SQL chain + conversation memory
-- [x] Phase 4 — RAG layer with pgvector
-- [x] Phase 5 — Hybrid router pipeline
-- [ ] Phase 6 — Streamlit UI
-
----
 
 ## Dataset
 
